@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Veterinaria.Entidades.Dtos;
 using Veterinaria.Negocio;
@@ -6,6 +7,7 @@ using Veterinaria.Negocio.Servicios;
 namespace Veterinaria.Api.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/[controller]")]
 public class MascotasController : ControllerBase
 {
@@ -13,12 +15,14 @@ public class MascotasController : ControllerBase
 
     public MascotasController(IMascotaServicio servicio) => _servicio = servicio;
 
+    [AllowAnonymous]
     [HttpGet]
     public async Task<ActionResult<IEnumerable<MascotaDto>>> Get(string? especie, int? propietarioId, string? buscar)
     {
         return Ok(await _servicio.ListarAsync(especie, propietarioId, buscar));
     }
 
+    [AllowAnonymous]
     [HttpGet("{id}")]
     public async Task<ActionResult<MascotaDto>> Get(int id)
     {
@@ -46,6 +50,7 @@ public class MascotasController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "Veterinario")]
     [HttpPut("{id}")]
     public async Task<IActionResult> Put(int id, MascotaActualizarDto dto)
     {
@@ -65,6 +70,7 @@ public class MascotasController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "Veterinario")]
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {

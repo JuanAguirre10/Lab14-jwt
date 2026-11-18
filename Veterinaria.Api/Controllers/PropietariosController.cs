@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Veterinaria.Entidades.Dtos;
 using Veterinaria.Negocio;
@@ -6,6 +7,7 @@ using Veterinaria.Negocio.Servicios;
 namespace Veterinaria.Api.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/[controller]")]
 public class PropietariosController : ControllerBase
 {
@@ -56,6 +58,7 @@ public class PropietariosController : ControllerBase
         return NoContent();
     }
 
+    [Authorize(Roles = "Recepcionista")]
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
