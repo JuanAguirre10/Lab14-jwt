@@ -1,36 +1,134 @@
 @host = http://localhost:5213
+@tokenRecepcion = {{loginRecepcion.response.body.$.token}}
+@tokenVeterinario = {{loginVeterinario.response.body.$.token}}
+
+### Autenticación
+# 201: nuevo usuario, el servidor le asigna el rol Recepcionista
+POST {{host}}/api/auth/registro
+Content-Type: application/json
+
+{ "correo": "lucia.ramos@veterinaria.pe", "clave": "Lucia2026" }
+
+###
+# 409: el correo ya está registrado
+POST {{host}}/api/auth/registro
+Content-Type: application/json
+
+{ "correo": "lucia.ramos@veterinaria.pe", "clave": "OtraClave1" }
+
+###
+# 400: clave muy corta y correo inválido
+POST {{host}}/api/auth/registro
+Content-Type: application/json
+
+{ "correo": "lucia.veterinaria.pe", "clave": "123" }
+
+###
+# 200: login de la recepcionista
+# @name loginRecepcion
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "correo": "recepcion@veterinaria.pe", "clave": "Clave123" }
+
+###
+# 200: login del veterinario
+# @name loginVeterinario
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "correo": "veterinario@veterinaria.pe", "clave": "Clave123" }
+
+###
+# 200: el usuario recién registrado también puede entrar
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "correo": "lucia.ramos@veterinaria.pe", "clave": "Lucia2026" }
+
+###
+# 401: clave incorrecta
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "correo": "recepcion@veterinaria.pe", "clave": "ClaveMala" }
+
+###
+# 401: el correo no existe (misma respuesta que la clave incorrecta)
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "correo": "nadie@veterinaria.pe", "clave": "Clave123" }
+
+###
+# 200: perfil de la recepcionista
+GET {{host}}/api/auth/perfil
+Authorization: Bearer {{tokenRecepcion}}
+
+###
+# 200: perfil del veterinario
+GET {{host}}/api/auth/perfil
+Authorization: Bearer {{tokenVeterinario}}
+
+###
+# 401: perfil sin token
+GET {{host}}/api/auth/perfil
+
+###
+# 401: token alterado
+GET {{host}}/api/auth/perfil
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIn0.firmafalsa
 
 ### Propietarios
+# 401: sin token
+GET {{host}}/api/propietarios
+
+###
 # 200: lista ordenada por nombres
 GET {{host}}/api/propietarios
+Authorization: Bearer {{tokenRecepcion}}
 
 ###
 # 200: búsqueda por nombre o DNI
 GET {{host}}/api/propietarios?buscar=rojas
+Authorization: Bearer {{tokenVeterinario}}
 
 ###
 # 200: con la cantidad de mascotas
 GET {{host}}/api/propietarios/1
+Authorization: Bearer {{tokenRecepcion}}
 
 ###
 # 404: no existe
 GET {{host}}/api/propietarios/999
+Authorization: Bearer {{tokenRecepcion}}
 
 ###
 # 200: mascotas del propietario
 GET {{host}}/api/propietarios/1/mascotas
+Authorization: Bearer {{tokenVeterinario}}
 
 ###
 # 200: propietario sin mascotas
 GET {{host}}/api/propietarios/5/mascotas
+Authorization: Bearer {{tokenRecepcion}}
 
 ###
 # 404: el propietario no existe
 GET {{host}}/api/propietarios/999/mascotas
+Authorization: Bearer {{tokenRecepcion}}
 
 ###
-# 201: nuevo propietario
+# 401: crear sin token
 POST {{host}}/api/propietarios
+Content-Type: application/json
+
+{ "nombres": "Carmen Rosa Vílchez Ramos", "dni": "45129673", "telefono": "965412378", "correo": "carmen.vilchez@gmail.com" }
+
+###
+# 201: nuevo propietario (Recepcionista)
+POST {{host}}/api/propietarios
+Authorization: Bearer {{tokenRecepcion}}
 Content-Type: application/json
 
 { "nombres": "Carmen Rosa Vílchez Ramos", "dni": "45129673", "telefono": "965412378", "correo": "carmen.vilchez@gmail.com" }
@@ -38,6 +136,7 @@ Content-Type: application/json
 ###
 # 400: datos inválidos
 POST {{host}}/api/propietarios
+Authorization: Bearer {{tokenRecepcion}}
 Content-Type: application/json
 
 { "nombres": "", "dni": "123", "telefono": "12345", "correo": "carmen.gmail.com" }
@@ -45,13 +144,15 @@ Content-Type: application/json
 ###
 # 409: DNI repetido
 POST {{host}}/api/propietarios
+Authorization: Bearer {{tokenVeterinario}}
 Content-Type: application/json
 
 { "nombres": "Ana Paredes", "dni": "46281937", "telefono": null, "correo": null }
 
 ###
-# 204: actualizar teléfono y correo
+# 204: actualizar teléfono y correo (Veterinario)
 PUT {{host}}/api/propietarios/6
+Authorization: Bearer {{tokenVeterinario}}
 Content-Type: application/json
 
 { "nombres": "Carmen Rosa Vílchez Ramos", "telefono": "965412300", "correo": "carmenrosa.vilchez@gmail.com" }
@@ -59,10 +160,12 @@ Content-Type: application/json
 ###
 # 200: se guardó el cambio
 GET {{host}}/api/propietarios/6
+Authorization: Bearer {{tokenRecepcion}}
 
 ###
 # 404: no existe
 PUT {{host}}/api/propietarios/999
+Authorization: Bearer {{tokenRecepcion}}
 Content-Type: application/json
 
 { "nombres": "Carmen Rosa Vílchez Ramos", "telefono": "965412300", "correo": "carmenrosa.vilchez@gmail.com" }
@@ -70,16 +173,23 @@ Content-Type: application/json
 ###
 # 400: nombres vacío
 PUT {{host}}/api/propietarios/6
+Authorization: Bearer {{tokenRecepcion}}
 Content-Type: application/json
 
 { "nombres": "", "telefono": "965412300", "correo": null }
 
 ###
+# 403: el Veterinario no puede eliminar propietarios
+DELETE {{host}}/api/propietarios/1
+Authorization: Bearer {{tokenVeterinario}}
+
+###
 # 409: tiene mascotas registradas
 DELETE {{host}}/api/propietarios/1
+Authorization: Bearer {{tokenRecepcion}}
 
 ### Mascotas
-# 200: todas las mascotas
+# 200: todas las mascotas, sin token
 GET {{host}}/api/mascotas
 
 ###
@@ -99,8 +209,16 @@ GET {{host}}/api/mascotas/1
 GET {{host}}/api/mascotas/999
 
 ###
-# 201: nueva mascota
+# 401: crear sin token
 POST {{host}}/api/mascotas
+Content-Type: application/json
+
+{ "nombre": "Max", "especie": "Perro", "raza": "Labrador", "fechaNacimiento": "2024-08-03", "peso": 12.5, "propietarioId": 6 }
+
+###
+# 201: nueva mascota (Recepcionista)
+POST {{host}}/api/mascotas
+Authorization: Bearer {{tokenRecepcion}}
 Content-Type: application/json
 
 { "nombre": "Max", "especie": "Perro", "raza": "Labrador", "fechaNacimiento": "2024-08-03", "peso": 12.5, "propietarioId": 6 }
@@ -108,6 +226,7 @@ Content-Type: application/json
 ###
 # 400: datos inválidos
 POST {{host}}/api/mascotas
+Authorization: Bearer {{tokenRecepcion}}
 Content-Type: application/json
 
 { "nombre": "", "especie": "", "peso": 0, "propietarioId": 0 }
@@ -115,6 +234,7 @@ Content-Type: application/json
 ###
 # 400: el propietario no existe
 POST {{host}}/api/mascotas
+Authorization: Bearer {{tokenRecepcion}}
 Content-Type: application/json
 
 { "nombre": "Bobby", "especie": "Perro", "raza": null, "fechaNacimiento": "2023-05-10", "peso": 9.5, "propietarioId": 999 }
@@ -122,6 +242,7 @@ Content-Type: application/json
 ###
 # 400: fecha de nacimiento futura
 POST {{host}}/api/mascotas
+Authorization: Bearer {{tokenVeterinario}}
 Content-Type: application/json
 
 { "nombre": "Bobby", "especie": "Perro", "raza": null, "fechaNacimiento": "2027-01-15", "peso": 9.5, "propietarioId": 5 }
@@ -129,13 +250,23 @@ Content-Type: application/json
 ###
 # 409: nombre repetido para el mismo propietario
 POST {{host}}/api/mascotas
+Authorization: Bearer {{tokenRecepcion}}
 Content-Type: application/json
 
 { "nombre": "Firulais", "especie": "Perro", "raza": "Mestizo", "fechaNacimiento": "2024-02-01", "peso": 10, "propietarioId": 1 }
 
 ###
-# 204: actualizar peso
+# 403: la Recepcionista no puede editar mascotas
 PUT {{host}}/api/mascotas/9
+Authorization: Bearer {{tokenRecepcion}}
+Content-Type: application/json
+
+{ "nombre": "Max", "especie": "Perro", "raza": "Labrador", "fechaNacimiento": "2024-08-03", "peso": 14.2 }
+
+###
+# 204: actualizar peso (Veterinario)
+PUT {{host}}/api/mascotas/9
+Authorization: Bearer {{tokenVeterinario}}
 Content-Type: application/json
 
 { "nombre": "Max", "especie": "Perro", "raza": "Labrador", "fechaNacimiento": "2024-08-03", "peso": 14.2 }
@@ -143,6 +274,7 @@ Content-Type: application/json
 ###
 # 400: fecha de nacimiento futura
 PUT {{host}}/api/mascotas/9
+Authorization: Bearer {{tokenVeterinario}}
 Content-Type: application/json
 
 { "nombre": "Max", "especie": "Perro", "raza": "Labrador", "fechaNacimiento": "2027-03-01", "peso": 14.2 }
@@ -150,6 +282,7 @@ Content-Type: application/json
 ###
 # 409: el propietario ya tiene una mascota con ese nombre
 PUT {{host}}/api/mascotas/2
+Authorization: Bearer {{tokenVeterinario}}
 Content-Type: application/json
 
 { "nombre": "Firulais", "especie": "Gato", "raza": "Siamés", "fechaNacimiento": "2021-07-02", "peso": 4.2 }
@@ -157,22 +290,36 @@ Content-Type: application/json
 ###
 # 404: no existe
 PUT {{host}}/api/mascotas/999
+Authorization: Bearer {{tokenVeterinario}}
 Content-Type: application/json
 
 { "nombre": "Max", "especie": "Perro", "raza": "Labrador", "fechaNacimiento": "2024-08-03", "peso": 14.2 }
 
 ###
-# 204: eliminar
+# 401: eliminar sin token
 DELETE {{host}}/api/mascotas/9
+
+###
+# 403: la Recepcionista no puede eliminar mascotas
+DELETE {{host}}/api/mascotas/9
+Authorization: Bearer {{tokenRecepcion}}
+
+###
+# 204: eliminar (Veterinario)
+DELETE {{host}}/api/mascotas/9
+Authorization: Bearer {{tokenVeterinario}}
 
 ###
 # 404: no existe
 DELETE {{host}}/api/mascotas/999
+Authorization: Bearer {{tokenVeterinario}}
 
 ### Eliminar propietario
-# 204: ya no tiene mascotas
+# 204: ya no tiene mascotas (Recepcionista)
 DELETE {{host}}/api/propietarios/6
+Authorization: Bearer {{tokenRecepcion}}
 
 ###
 # 404: no existe
 DELETE {{host}}/api/propietarios/999
+Authorization: Bearer {{tokenRecepcion}}
